@@ -163,7 +163,7 @@ ${DOCKER} pull ${DOCKERHUB_DHCP_IMAGE}
 
 ## Start apache container
 echo -e "\n-- Starting ${HTTPCONTAINERNAME} container...\n"
-${DOCKER} run -v ${DHCP_PATH}/${DHCPD_CONF}:${DHCP_PATH}/${DHCPD_CONF}  -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${DOCKERHUB_HTTP_IMAGE}
+${DOCKER} run -v ${DHCP_PATH}:${DHCP_PATH} -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${DOCKERHUB_HTTP_IMAGE}
 HTTPCONTAINERID=`${DOCKER} ps | grep ${HTTPCONTAINERNAME} | awk '{print $1}'`
 
 echo -e "\n-- Modifying ${HTTPCONTAINERNAME} container..."
@@ -201,7 +201,7 @@ ${DOCKER} stop ${HTTPCONTAINERNAME}
 ${DOCKER} rm ${HTTPCONTAINERNAME}
 ${DOCKER} image rm ${DOCKERHUB_HTTP_IMAGE}
 echo -e "   Starting new container from image ${HTTPCONTAINERNAME}:v1..."
-${DOCKER} run -v ${DHCP_PATH}/${DHCPD_CONF}:${DHCP_PATH}/${DHCPD_CONF} -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d --restart=always -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${HTTPCONTAINERNAME}:v1
+${DOCKER} run -v ${DHCP_PATH}:${DHCP_PATH} -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d --restart=always -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${HTTPCONTAINERNAME}:v1
 
 
 ## Prepare Dell OS10 scripts
@@ -228,7 +228,7 @@ echo -e "\n-- Changed all files and subfolders in ${TFTPBOOT} to user/group ${WW
 
 ## Starting DHCPD container
 echo -e "\n-- Starting container ${DHCPCONTAINERNAME}..."
-${DOCKER} run -d  -v /var/lib/dhcp:/var/lib/dhcp -v ${DHCP_PATH}/${DHCPD_CONF}:/etc/dhcp/dhcpd.conf --restart=always --net=host --name=${DHCPCONTAINERNAME} ${DOCKERHUB_DHCP_IMAGE}
+${DOCKER} run -d  -v /var/lib/dhcp:/var/lib/dhcp -v ${DHCP_PATH}:${DHCP_PATH} --restart=always --net=host --name=${DHCPCONTAINERNAME} ${DOCKERHUB_DHCP_IMAGE}
 
 
 echo -e "\n####################  All Done  ####################"

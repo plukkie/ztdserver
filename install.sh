@@ -236,5 +236,11 @@ echo -e " Some actions to do:"
 echo -e " - Upload a default ONIE image to '${TFTPBOOT}${OS_IMAGES}/'"
 echo -e "   and name it '${ONIE_DEFAULT_BOOT}'"
 echo -e "   This will be picked up by a switch if no OS is present.\n"
+echo -e " - Edit ${DHCP_PATH}/${DHCPD_CONF} to add your fabric switches."
+echo -e "   Add mac address and fixed-ip address under the line stating:"
+echo -e "   ### Inserted by Plukkie's ZTD Github project - DON'T EDIT THIS LINE ###"
+echo -e "   The names you use will be automatically configured on the switches"
+echo -e "   as hostnames."
+echo -e "   After changes, restart with 'docker restart ${DHCPCONTAINERNAME}'"
 
 ## su - ${USER} ## Activating group for user

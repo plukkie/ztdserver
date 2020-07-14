@@ -9,7 +9,7 @@ rest api restconf
 ip name-server 8.8.8.8 8.8.4.4
 ntp server 80.127.119.186
 ntp server 188.165.11.86
-snmp-server contact "Dell Technologies"
+snmp-server contact "Dell Technologies GCN"
 
 crypto security-profile gnmi-os10-0
  certificate gnmi-os10-0

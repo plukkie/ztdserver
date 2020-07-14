@@ -141,12 +141,14 @@ echo -e "}\n" >> ${DHCPD_CONF}
 echo -e "## Per switch entry for fixed IP and ZTD kickoff script" >> ${DHCPD_CONF}
 echo -e "group {" >> ${DHCPD_CONF}
 echo -e "        option ztd-provision-url \"http://${IP}${TFTPBOOT}${ZTD_PATH}/${ZTD_SCRIPT}\";" >> ${DHCPD_CONF}
-echo -e "\n        host SPINE01 {" >> ${DHCPD_CONF}
-echo -e "                hardware ethernet 54:bf:64:00:00:01;" >> ${DHCPD_CONF}
-echo -e "        }" >> ${DHCPD_CONF}
-echo -e "        host LEAF01 {" >> ${DHCPD_CONF}
-echo -e "                hardware ethernet 54:bf:64:00:01:01;" >> ${DHCPD_CONF}
-echo -e "        }" >> ${DHCPD_CONF}
+echo -e "\n#        host SPINE01 {" >> ${DHCPD_CONF}
+echo -e "#                hardware ethernet 54:bf:64:00:00:01;" >> ${DHCPD_CONF}
+echo -e "#                fixed-address 10.11.12.11;" >> ${DHCPD_CONF}
+echo -e "#        }" >> ${DHCPD_CONF}
+echo -e "#        host LEAF01 {" >> ${DHCPD_CONF}
+echo -e "#                hardware ethernet 54:bf:64:00:01:01;" >> ${DHCPD_CONF}
+echo -e "#                fixed-address 10.11.12.21;" >> ${DHCPD_CONF}
+echo -e "#        }" >> ${DHCPD_CONF}
 echo -e "}\n" >> ${DHCPD_CONF}
 fi ## End dhcp file, first run
 
@@ -156,11 +158,14 @@ DOCKER=`type -tP docker`
 
 echo -e "\n-- Pulling Images from Docker Hub...\n"
 ${DOCKER} pull ${DOCKERHUB_HTTP_IMAGE}
+echo
 ${DOCKER} pull ${DOCKERHUB_DHCP_IMAGE}
 
 ## Start apache container
 echo -e "\n-- Starting ${HTTPCONTAINERNAME} container...\n"
-${DOCKER} run -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${DOCKERHUB_HTTP_IMAGE}
+${DOCKER} run -v ${DHCP_PATH}/${DHCPD_CONF}:${DHCP_PATH}/${DHCPD_CONF}  -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${DOCKERHUB_HTTP_IMAGE}
+HTTPCONTAINERID=`${DOCKER} ps | grep ${HTTPCONTAINERNAME} | awk '{print $1}'`
+
 echo -e "\n-- Modifying ${HTTPCONTAINERNAME} container..."
 ## Add symbolic link for the onie default boot image
 echo -e "   Add symbolic link for ONIE default boot location..."
@@ -174,16 +179,30 @@ ${DOCKER} exec -t ${HTTPCONTAINERNAME} bash -c "cd /etc/apache2/mods-enabled/ &&
 ## Find apache cgi-bin path where scripts are executed
 echo -e "   Looking for the cgi-script path..."
 APACHECGIPATH=$(${DOCKER} exec -t ${HTTPCONTAINERNAME} grep Directory.*cgi-bin /etc/apache2/conf-available/serve-cgi-bin.conf|grep -oP '"\K[^"\047]+(?=["\047])')
+## create symbolic link for cgi-bin folder
+${DOCKER} exec -t ${HTTPCONTAINERNAME} ln -s ${APACHECGIPATH} ${HTTPPATH}/cgi-bin
 
 ## Prepare script catch_hostnames.sh and copy to container
 echo -e "   Preparing script file ${CGISCRIPT}..."
 sed -i '/DHCPD_CONF=/ c\DHCPD_CONF='"${DHCP_PATH}"/"${DHCPD_CONF}"'' ${CGISCRIPT}
-sed -i '/TFTPBOOT=/ c\TFTPBOOT='"${TFTPBOOT}"'' ${CGISCRIPT}
+sed -i '/TFTPBOOT=/ c\TFTPBOOT='"${HTTPPATH}${TFTPBOOT}"'' ${CGISCRIPT}
 sed -i '/HOSTNAMES=/ c\HOSTNAMES='"${HOSTNAMESFILE}"'' ${CGISCRIPT}
 ## Set 'x' and copy script to container
 chmod a+x ${CGISCRIPT}
+chown root.root ${CGISCRIPT}
 echo -e "   Copy script ${CGISCRIPT} to container ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}..."
 ${DOCKER} cp ${CGISCRIPT} ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}
+echo -e "   Restart container..."
+${DOCKER} restart ${HTTPCONTAINERNAME}
+echo -e "   Commit changes in container and save new image..."
+${DOCKER} commit -m "ztd initial install" ${HTTPCONTAINERID} ${HTTPCONTAINERNAME}:v1
+echo -e "   Stopping and removing current active container and image..."
+${DOCKER} stop ${HTTPCONTAINERNAME}
+${DOCKER} rm ${HTTPCONTAINERNAME}
+${DOCKER} image rm ${DOCKERHUB_HTTP_IMAGE}
+echo -e "   Starting new container from image ${HTTPCONTAINERNAME}:v1..."
+${DOCKER} run -v ${DHCP_PATH}/${DHCPD_CONF}:${DHCP_PATH}/${DHCPD_CONF} -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d --restart=always -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${HTTPCONTAINERNAME}:v1
+
 
 ## Prepare Dell OS10 scripts
 echo -e "\n-- Preparing Dell OS10 staging scripts: ${ZTD_SCRIPT}, ${CLI_CONFIG_FILE}, ${POST_SCRIPT_FILE}..."
@@ -209,7 +228,7 @@ echo -e "\n-- Changed all files and subfolders in ${TFTPBOOT} to user/group ${WW
 
 ## Starting DHCPD container
 echo -e "\n-- Starting container ${DHCPCONTAINERNAME}..."
-${DOCKER} run -d  -v /var/lib/dhcp:/var/lib/dhcp -v ${DHCP_PATH}/${DHCPD_CONF}:/etc/dhcp/dhcpd.conf --net=host --name=${DHCPCONTAINERNAME} ${DOCKERHUB_DHCP_IMAGE}
+${DOCKER} run -d  -v /var/lib/dhcp:/var/lib/dhcp -v ${DHCP_PATH}/${DHCPD_CONF}:/etc/dhcp/dhcpd.conf --restart=always --net=host --name=${DHCPCONTAINERNAME} ${DOCKERHUB_DHCP_IMAGE}
 
 
 echo -e "\n####################  All Done  ####################"

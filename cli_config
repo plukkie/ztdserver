@@ -1,0 +1,29 @@
+# PRE-CONFIG
+
+# POST-CONFIG
+do crypto cert generate self-signed cert-file home://gnmi-os10-0.crt key-file home://gnmi-os10-0.key cname os10
+do crypto cert install cert-file home://gnmi-os10-0.crt key-file home://gnmi-os10-0.key
+
+hostname ZTP-STAGING
+rest api restconf
+ip name-server 8.8.8.8 8.8.4.4
+ntp server 80.127.119.186
+ntp server 188.165.11.86
+snmp-server contact "Dell Technologies"
+
+crypto security-profile gnmi-os10-0
+ certificate gnmi-os10-0
+
+gnmi-security-profile gnmi-os10-0
+
+banner motd ^C
+
+  ********************************************
+  * This router is ZTD staged                *
+  * ztd script used : ztd.sh                 *
+  * configfile used : cli_config             *
+  * postscript used : post_script.sh         *
+  ********************************************
+
+^C
+

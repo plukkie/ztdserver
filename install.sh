@@ -36,6 +36,7 @@ CGISCRIPT=catch_hostnames.sh
 HOSTNAMESFILE=hostnames.dyn
 DHCP_PATH=/etc/dhcp
 DHCPD_CONF=dhcpd.conf
+DHCPLIB=/var/lib/dhcp
 ONIE_DEFAULT_BOOT=onie-installer-x86_64
 OS_IMAGES=/osimages
 ZTD_PATH=/ztd
@@ -44,6 +45,8 @@ CLI_CONFIG_PATH=/cli_config
 CLI_CONFIG_FILE=cli_config
 POST_SCRIPT_PATH=/post_script
 POST_SCRIPT_FILE=post_script.sh
+DOCKERCOMPOSE_YML=docker-compose.yml
+COMPOSEV=3
 APT=`type -tP apt`
 APTCACHE=`type -fP apt-cache`
 APTKEY=`type -tP apt-key`
@@ -52,7 +55,7 @@ CURL=`type -tP curl`
 SYSCTL=`type -tP systemctl`
 USERMOD=`type -tP usermod`
 USER=`logname`
-ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | cut -d':' -f2`
+ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | grep -iv master | grep -iv br- | cut -d':' -f2`
 IP=`ifconfig ${ETH_INT} | grep -i inet.*netmask | awk '/inet/{print $2}'`
 SUBNETDATA=`netstat -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
 SUBNET=`echo ${SUBNETDATA} | cut -d' ' -f1`
@@ -60,6 +63,45 @@ NETMASK=`echo ${SUBNETDATA} | cut -d' ' -f2`
 GW=`netstat -rn | grep ${ETH_INT} | grep G | awk '{print $2}'`
 
 ## ======================== START PROGRAM ====================
+
+## First test if the installer has already ran, by checking if we find docker and our images
+if [[ $(which docker) && $(docker --version) ]]; then #start if1
+    ## Docker is installed
+    HTTPCONTAINERIMAGE=`docker images -q ${HTTPCONTAINERNAME}`
+    if [ ! -z "${HTTPCONTAINERIMAGE}" ] ; then #start if2
+	    echo -e "\n   This installer has already ran."
+	    echo "   You can safely run it again."
+	    echo "   - This will backup ${DHCP_PATH}/${DHCPD_CONF} to *.bak:"
+	    echo "   - The ${TFTPBOOT}/* will be preserved."
+	    echo "     If you want to have it reinstalled with all default contents,"
+	    echo "     manually delete it and run install.sh again."
+	    echo -e "\n   Are you sure to want to run the installer again?"
+            select yn in "Yes" "No"; do
+	      case $yn in
+		      Yes ) 	echo
+    				docker-compose down
+    				docker image rm ${HTTPCONTAINERIMAGE}
+    				docker images -q ${DOCKERHUB_DHCP_IMAGE}
+    				if [ ! -z `docker images -q ${DOCKERHUB_DHCP_IMAGE}` ] ; then #start if3
+    					docker image rm ${DOCKERHUB_DHCP_IMAGE}
+    				fi #stop if3
+				break;;
+		      No ) exit;;
+	      esac
+	    done
+    fi #stop if2
+fi #stop if1
+
+
+cat /etc/passwd | grep -q ${WWWUSER}
+if [ $? -eq 0 ] ; then
+        echo -e "-- User '${WWWUSER}' Exists, no need to create :-)\n"
+else
+        echo -e "-- Creating user and group '${WWWUSER}'\n"
+        useradd -c ${WWWUSER} -d /var/www -M -U -s /usr/sbin/nologin ${WWWUSER}
+fi
+
+
 echo -e "\n-- update existing list of packages\n"
 $APT update
 
@@ -78,8 +120,8 @@ $APT update
 echo -e "\n-- Policy for docker-ce should be from Docker repo\n"
 $APTCACHE policy docker-ce
 
-echo -e "\n-- Install docker-ce\n"
-$APT install -y docker-ce
+echo -e "\n-- Install docker-ce and docker-compose...\n"
+$APT install -y docker-ce docker-compose
 
 echo -e "\n-- Calling status docker\n"
 $SYSCTL status docker -n0
@@ -152,14 +194,22 @@ echo -e "#        }" >> ${DHCPD_CONF}
 echo -e "}\n" >> ${DHCPD_CONF}
 fi ## End dhcp file, first run
 
+if [ -f "${DHCP_PATH}/${DHCPD_CONF}" ]; then
+    cp ${DHCP_PATH}/${DHCPD_CONF} ${DHCP_PATH}/${DHCPD_CONF}.bak
+fi
+ 
 cp ${DHCPD_CONF} ${DHCP_PATH}/${DHCPD_CONF}
 
 DOCKER=`type -tP docker`
+DOCKERCOMPOSE=`type -tP docker-compose`
 
 echo -e "\n-- Pulling Images from Docker Hub...\n"
 ${DOCKER} pull ${DOCKERHUB_HTTP_IMAGE}
 echo
 ${DOCKER} pull ${DOCKERHUB_DHCP_IMAGE}
+
+## Get apache2 PID file
+APACHE2_PID=`${DOCKER} image inspect ${DOCKERHUB_HTTP_IMAGE}|grep -m1 -i _PID_FILE|cut -d'=' -f2|cut -d'"' -f1`
 
 ## Start apache container
 echo -e "\n-- Starting ${HTTPCONTAINERNAME} container...\n"
@@ -192,16 +242,42 @@ chmod a+x ${CGISCRIPT}
 chown root.root ${CGISCRIPT}
 echo -e "   Copy script ${CGISCRIPT} to container ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}..."
 ${DOCKER} cp ${CGISCRIPT} ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}
-echo -e "   Restart container..."
-${DOCKER} restart ${HTTPCONTAINERNAME}
+${DOCKER} exec ${HTTPCONTAINERNAME} rm -f ${APACHE2_PID}
 echo -e "   Commit changes in container and save new image..."
 ${DOCKER} commit -m "ztd initial install" ${HTTPCONTAINERID} ${HTTPCONTAINERNAME}:v1
 echo -e "   Stopping and removing current active container and image..."
 ${DOCKER} stop ${HTTPCONTAINERNAME}
 ${DOCKER} rm ${HTTPCONTAINERNAME}
 ${DOCKER} image rm ${DOCKERHUB_HTTP_IMAGE}
+
+## Create docker-compose.yml
+echo -e "\n-- Creating ${DOCKERCOMPOSE_YML} file..."
+if [ -f "${DOCKERCOMPOSE_YML}" ]; then
+    mv ${DOCKERCOMPOSE_YML} ${DOCKERCOMPOSE_YML}.bak
+    echo "   ${DOCKERCOMPOSE_YML} exists. Backed up to ${DOCKERCOMPOSE_YML}.bak"
+fi
+cat <<EOT >> ${DOCKERCOMPOSE_YML}
+version: '${COMPOSEV}'
+services:
+   ${HTTPCONTAINERNAME}:
+     image: "${HTTPCONTAINERNAME}:v1"
+     ports:
+       - "80:80"
+       - "443:443"
+     volumes:
+       - ${DHCP_PATH}:${DHCP_PATH}
+       - ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT}
+   ${DHCPCONTAINERNAME}:
+     image: ${DOCKERHUB_DHCP_IMAGE}
+     volumes:
+       - ${DHCPLIB}:${DHCPLIB}
+       - ${DHCP_PATH}:${DHCP_PATH}
+     network_mode: "host"
+EOT
+echo "   Done."
+echo "   This docker yaml file is used by docker-compose to start/stop your containers."
 echo -e "   Starting new container from image ${HTTPCONTAINERNAME}:v1..."
-${DOCKER} run -v ${DHCP_PATH}:${DHCP_PATH} -v ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT} -d --restart=always -p80:80 -p443:443 --name ${HTTPCONTAINERNAME} ${HTTPCONTAINERNAME}:v1
+${DOCKERCOMPOSE} up -d ${HTTPCONTAINERNAME}
 
 
 ## Prepare Dell OS10 scripts
@@ -228,7 +304,7 @@ echo -e "\n-- Changed all files and subfolders in ${TFTPBOOT} to user/group ${WW
 
 ## Starting DHCPD container
 echo -e "\n-- Starting container ${DHCPCONTAINERNAME}..."
-${DOCKER} run -d  -v /var/lib/dhcp:/var/lib/dhcp -v ${DHCP_PATH}:${DHCP_PATH} --restart=always --net=host --name=${DHCPCONTAINERNAME} ${DOCKERHUB_DHCP_IMAGE}
+${DOCKERCOMPOSE} up -d ${DHCPCONTAINERNAME}
 
 
 echo -e "\n####################  All Done  ####################"
@@ -241,6 +317,15 @@ echo -e "   Add mac address and fixed-ip address under the line stating:"
 echo -e "   ### Inserted by Plukkie's ZTD Github project - DON'T EDIT THIS LINE ###"
 echo -e "   The names you use will be automatically configured on the switches"
 echo -e "   as hostnames."
-echo -e "   After changes, restart with 'docker restart ${DHCPCONTAINERNAME}'"
+echo -e "   After changes, restart with 'docker-compose restart ${DHCPCONTAINERNAME}'"
+echo -e " - Usefull container commands"
+echo -e "   Restart all containers: docker-compose restart"
+echo -e "   Gracefully shut down and remove containers: docker-compose down"
+echo -e "   Spin up containers: docker-compose up -d\n"
+echo "  The last command executed was 'su - ${USER}'. This ensures"
+echo "  the user can run docker commands as non-root user."
+echo "  Please keep the staging folder as it contains the docker-composer commands"
+echo -e "  which you can use to manage container stuff.\n"
 
-## su - ${USER} ## Activating group for user
+su - ${USER} ## Activating group for user
+

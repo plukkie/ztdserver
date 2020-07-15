@@ -14,7 +14,7 @@ The default is NOT. If you want a dynamic dhcp pool, change below variable:
   This can be changed with variables DHCPSTART=151 and DHCPSTOP=170  
 
 What the script will do?
-- install some required packages to have docker enabled
+- install some required packages to have docker and docker-composer enabled
 - create user.group for ztd folder, default www-data
 - setup the ztd folder structure for images, scripts, config leds.  
   The default is /tftpboot/...
@@ -22,10 +22,9 @@ What the script will do?
   In there you can add your Switches with desired hostname,  
   mac-address and fixed ip address. Scroll down to practically EoF.  
   Restart container ztd-dhcpd after changes.  
-  [ docker restart ztd-dhcpd ]
+  [ docker-composer restart ztd-dhcpd ]
 - create some other scripts which are used by the zero touch deployment process.  
-- create containers for dhcp service and httpd service.  
-  ztd-dhcpd and ztd-httpd  
+- create containers for dhcp service and httpd service (ztd-dhcpd and ztd-httpd)  
 
  
 # short install steps
@@ -33,4 +32,15 @@ What the script will do?
 2. git clone https://github.com/plukkie/ztdserver.git
 3. cd ztdserver
 4. sudo ./install.sh
+5. check service up with: docker-compose ps
+
+# reinstall  
+You can execute the sudo ./install.sh safely again if you  
+need to reinstall. You content is preserved and/or copied to .bak  
+
+Enjoy the ZTD environment.  
+
+Greetings,
+
+Plukkie
 

@@ -55,7 +55,7 @@ CURL=`type -tP curl`
 SYSCTL=`type -tP systemctl`
 USERMOD=`type -tP usermod`
 USER=`logname`
-ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | grep -iv master | grep -iv br- | cut -d':' -f2`
+ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | grep -iv master | grep -iv br- | cut -d':' -f2` && ETH_INT=${ETH_INT%%[[:space:]] *}
 IP=`ifconfig ${ETH_INT} | grep -i inet.*netmask | awk '/inet/{print $2}'`
 SUBNETDATA=`netstat -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
 SUBNET=`echo ${SUBNETDATA} | cut -d' ' -f1`

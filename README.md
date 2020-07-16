@@ -54,9 +54,10 @@ What the script will do?
 6. check service up with: docker-compose ps
 
 # problems
-- if your ubuntu vm has more then one active interface, the ip-address can not be determined
-  automatically for the www server. Add the ip-address manually after installation in the
-  script /tftpboot/ztd/ztd.sh, on the variable ZTD_SERVER_IP=
+- if your ubuntu vm has more then one active interface, it could be that the ip-address  
+  can not be determined automatically for the www server. Please then add the ip-address  
+  manually after installation. Edit script /tftpboot/ztd/ztd.sh and set the variable
+  ZTD_SERVER_IP=<ip address of server interface>
   Also, the subnet could be misconfigured in the /etc/dhcp/dhcpd.conf.
   Edit the dhcp file and restart container: docker-compose restart ztd-dhcpd
 

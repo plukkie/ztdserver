@@ -37,6 +37,13 @@ What the script will do?
   Please use 'docker-compose down' to manually shut containers.
   Please use 'docker-compose up -d' to manually start containers.
 
+# requirements
+1. Ubuntu host or VM (tested on 20.04)
+   Allthough the ZTD daemons are deployed as containers and thus would be portable
+   and deployable on multiple Linux distro's, the install.sh script uses some command
+   outputs and tools like packet manager and naming standards that only work on Ubuntu.
+2. git to get the ztdserver repo : install git with "apt -y install git"
+3. run installer as "sudo ./install.sh" or just login as root and run "./install.sh"
  
 # short install steps
 1. Have your base ubuntu server ready
@@ -45,6 +52,13 @@ What the script will do?
 4. cd ztdserver
 5. sudo ./install.sh
 6. check service up with: docker-compose ps
+
+# problems
+- if your ubuntu vm has more then one active interface, the ip-address can not be determined
+  automatically for the www server. Add the ip-address manually after installation in the
+  script /tftpboot/ztd/ztd.sh, on the variable ZTD_SERVER_IP=
+  Also, the subnet could be misconfigured in the /etc/dhcp/dhcpd.conf.
+  Edit the dhcp file and restart container: docker-compose restart ztd-dhcpd
 
 # reinstall  
 You can execute the sudo ./install.sh safely again if you  

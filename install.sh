@@ -144,15 +144,6 @@ echo -e "    ${TFTPBOOT}${CLI_CONFIG_PATH}"
 echo -e "    ${TFTPBOOT}${POST_SCRIPT_PATH}\n"
 [ ! -d "${TFTPBOOT}${POST_SCRIPT_PATH}" ] && mkdir ${TFTPBOOT}${POST_SCRIPT_PATH}
 touch ${TFTPBOOT}${OS_IMAGES}/${DUMMY_OS_BIN}
-
-cat /etc/passwd | grep -q ${WWWUSER}
-if [ $? -eq 0 ] ; then
-	echo -e "-- User '${WWWUSER}' Exists, no need to create :-)\n"
-else
-	echo -e "-- Creating user and group '${WWWUSER}'\n"
-	useradd -c ${WWWUSER} -d /var/www -M -U -s /usr/sbin/nologin ${WWWUSER}
-fi
-
 ## Setting up dhcpd.conf file with some mandatory items
 [ ! -d "${DHCP_PATH}" ] && mkdir ${DHCP_PATH}
 

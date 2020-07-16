@@ -61,6 +61,7 @@ SUBNETDATA=`netstat -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
 SUBNET=`echo ${SUBNETDATA} | cut -d' ' -f1`
 NETMASK=`echo ${SUBNETDATA} | cut -d' ' -f2`
 GW=`netstat -rn | grep ${ETH_INT} | grep G | awk '{print $2}'`
+SETUG=1
 
 ## ======================== START PROGRAM ====================
 
@@ -69,6 +70,7 @@ if [[ $(which docker) && $(docker --version) ]]; then #start if1
     ## Docker is installed
     HTTPCONTAINERIMAGE=`docker images -q ${HTTPCONTAINERNAME}`
     if [ ! -z "${HTTPCONTAINERIMAGE}" ] ; then #start if2
+	    SETUG=0
 	    echo -e "\n   This installer has already ran."
 	    echo "   You can safely run it again."
 	    echo "   - This will backup ${DHCP_PATH}/${DHCPD_CONF} to *.bak:"
@@ -132,7 +134,7 @@ $USERMOD -aG docker ${USER}
 
 echo -e "\n-- Setting up ZTD staging folder structure...\n"
 echo -e "    ${TFTPBOOT}"
-[ ! -d "${TFTPBOOT}" ] && mkdir ${TFTPBOOT}
+[ ! -d "${TFTPBOOT}" ] && mkdir ${TFTPBOOT} && SETUG=1
 echo -e "    ${TFTPBOOT}${OS_IMAGES}"
 [ ! -d "${TFTPBOOT}${OS_IMAGES}" ] && mkdir ${TFTPBOOT}${OS_IMAGES}
 echo -e "    ${TFTPBOOT}${ZTD_PATH}"
@@ -295,12 +297,14 @@ sed -i '/CLI_CONF_FILE=/ c\CLI_CONF_FILE='"${CLI_CONFIG_FILE}"'' ${ZTD_SCRIPT}
 sed -i '/OS_IMAGE=/ c\OS_IMAGE='"${ONIE_DEFAULT_BOOT}"'' ${ZTD_SCRIPT}
 sed -i '/HOSTNAMES=/ c\HOSTNAMES='"${HOSTNAMESFILE}"'' ${POST_SCRIPT_FILE}
 
-echo -e "   Copy to staging folder ${TFTPBOOT}..."
-cp ${ZTD_SCRIPT} ${TFTPBOOT}${ZTD_PATH}/${ZTD_SCRIPT}
-cp ${CLI_CONFIG_FILE} ${TFTPBOOT}${CLI_CONFIG_PATH}/${CLI_CONFIG_FILE}
-cp ${POST_SCRIPT_FILE} ${TFTPBOOT}${POST_SCRIPT_PATH}/${POST_SCRIPT_FILE}
-chown -R ${WWWUSER}.${WWWUSER} ${TFTPBOOT}
-echo -e "\n-- Changed all files and subfolders in ${TFTPBOOT} to user/group ${WWWUSER}.${WWWUSER}..."
+if [ "${SETUG}" = 1 ] ; then
+  echo -e "   Copy to staging folder ${TFTPBOOT}..."
+  cp ${ZTD_SCRIPT} ${TFTPBOOT}${ZTD_PATH}/${ZTD_SCRIPT}
+  cp ${CLI_CONFIG_FILE} ${TFTPBOOT}${CLI_CONFIG_PATH}/${CLI_CONFIG_FILE}
+  cp ${POST_SCRIPT_FILE} ${TFTPBOOT}${POST_SCRIPT_PATH}/${POST_SCRIPT_FILE}
+  chown -R ${WWWUSER}.${WWWUSER} ${TFTPBOOT}
+  echo -e "\n-- Changed all files and subfolders in ${TFTPBOOT} to user/group ${WWWUSER}.${WWWUSER}..."
+fi
 
 ## Starting DHCPD container
 echo -e "\n-- Starting container ${DHCPCONTAINERNAME}..."

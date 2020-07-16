@@ -34,7 +34,7 @@ What the script will do?
   3. /tftpboot/ztd/ztd.sh
      Main bash scripts which is executed as first and retreives the other files
 - create containers for dhcp service and httpd service (ztd-dhcpd and ztd-httpd)  
-  Please use 'docker-compose down' to manually shut containers.
+  Please use 'docker-compose down' to manually shut containers.  
   Please use 'docker-compose up -d' to manually start containers.
 
 # requirements

@@ -60,6 +60,9 @@ What the script will do?
   ZTD_SERVER_IP=<ip address of server interface>
   Also, the subnet could be misconfigured in the /etc/dhcp/dhcpd.conf.
   Edit the dhcp file and restart container: docker-compose restart ztd-dhcpd
+- Be sure you do not have already a webserver or dhcp server running on your host
+  This will obviously interfear with the default ports of tcp:80, tcp:443 and udp:67. 
+  It will break a succesfull installation
 
 # reinstall  
 You can execute the sudo ./install.sh safely again if you  

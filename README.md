@@ -21,7 +21,7 @@ What the script will do?
 - create dhcpd.conf file with mandatory default settings  
   In there you can add your Switches with desired hostname,  
   mac-address and fixed ip address. Scroll down to practically the EoF,  
-  where you find the line which which mentions "DON'T EDIT THIS LINE".
+  where you find the line which which mentions "DON'T EDIT THIS LINE".  
   Below there you see examples of a Spine and a Leaf switch.
   Please adapt to your setup.  
   Restart container ztd-dhcpd after changes.  

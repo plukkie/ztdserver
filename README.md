@@ -25,7 +25,7 @@ What the script will do?
   Below there you see examples of a Spine and a Leaf switch.
   Please adapt to your setup.  
   Restart container ztd-dhcpd after changes.  
-  [ docker-composer restart ztd-dhcpd ]
+  [ docker-compose down ztd-dhcpd && docker-compose up ztd-dhcpd ]
 - create some other scripts which are used by the zero touch deployment process. 
   1. /tftpboot/cli_config/cli_config 
      Contains OS10 cli config statements
@@ -33,6 +33,16 @@ What the script will do?
      Contains bash script and is used to automate some tasks
   3. /tftpboot/ztd/ztd.sh
      Main bash scripts which is executed as first and retreives the other files
+  4. catch_hostnames.sh
+     This is a serverside bash script and greps the hostnames/mac-address mappings.
+     It exports them in the file hostnames.dyn. During ztd staging, the catch_hostname  
+     script is executed on the server and the latest hostname.dyn file is requested  
+     by the switch. The ztd post_script then uses this hostname file to find the  
+     matched hostname and it is configured on the switch.  
+     If you are logged into the switch via serial console, you would be able to see  
+     the switch changes hostnames from the name mentioned in cli_config to the final one  
+     discovered from the leading one in dhcpd.conf.
+     
 - create containers for dhcp service and httpd service (ztd-dhcpd and ztd-httpd)  
   Please use 'docker-compose down' to manually shut containers.  
   Please use 'docker-compose up -d' to manually start containers.
@@ -52,6 +62,14 @@ What the script will do?
 4. cd ztdserver
 5. sudo ./install.sh
 6. check service up with: docker-compose ps
+7. Add the hostnames/mac-addresses/ip's of your switches to the installed dhcpd.conf file  
+8. Restart dhcpd container : docker-compose down ztd-dhcpd && docker-compose up ztd-dhcpd
+9. Powerup your switches or reload with 'reload ztd'
+10. The switches should consume the default cli_config and be managable
+11. Modify to your prefered state, by editing the cli_config file for future staging  
+
+# Security
+The default login is untouched. Please change accordingly in the cli_config file.
 
 # problems
 - if your ubuntu vm has more then one active interface, it could be that the ip-address  

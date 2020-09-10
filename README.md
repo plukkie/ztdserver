@@ -63,7 +63,7 @@ What the script will do?
 5. sudo ./install.sh
 6. check service up with: docker-compose ps
 7. Add the hostnames/mac-addresses/ip's of your switches to the installed dhcpd.conf file  
-8. Restart dhcpd container : docker-compose down ztd-dhcpd && docker-compose up ztd-dhcpd
+8. Restart dhcpd container : docker-compose down ztd-dhcpd && docker-compose up ztd-dhcpd -d
 9. Powerup your switches or reload with 'reload ztd'
 10. The switches should consume the default cli_config and be managable
 11. Modify to your prefered state, by editing the cli_config file for future staging  

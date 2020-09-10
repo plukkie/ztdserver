@@ -22,6 +22,17 @@
 # greetings from plukkie@gmail.com
 ################################################
 
+APT=`type -tP apt`
+NETSTAT=netstat
+NETTOOLS=net-tools
+
+if ! command -v $NETSTAT &> /dev/null
+        then
+                echo "Package $NETTOOLS not found. This is mandatory for succesfull execution of $0."
+                echo "-- update existing list of packages..."
+                $APT update && $APT install -y $NETTOOLS
+fi
+
 DHCPPOOL=0
 DHCPSTART=151
 DHCPSTOP=170
@@ -47,7 +58,6 @@ POST_SCRIPT_PATH=/post_script
 POST_SCRIPT_FILE=post_script.sh
 DOCKERCOMPOSE_YML=docker-compose.yml
 COMPOSEV=3
-APT=`type -tP apt`
 APTCACHE=`type -fP apt-cache`
 APTKEY=`type -tP apt-key`
 APT_DOCKER_REPO=`type -tP add-apt-repository`
@@ -57,10 +67,10 @@ USERMOD=`type -tP usermod`
 USER=`logname`
 ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | grep -iv master | grep -iv br- | cut -d':' -f2` && ETH_INT=${ETH_INT%%[[:space:]] *}
 IP=`ifconfig ${ETH_INT} | grep -i inet.*netmask | awk '/inet/{print $2}'`
-SUBNETDATA=`netstat -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
+SUBNETDATA=`$NETSTAT -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
 SUBNET=`echo ${SUBNETDATA} | cut -d' ' -f1`
 NETMASK=`echo ${SUBNETDATA} | cut -d' ' -f2`
-GW=`netstat -rn | grep ${ETH_INT} | grep G | awk '{print $2}'`
+GW=`$NETSTAT -rn | grep ${ETH_INT} | grep G | awk '{print $2}'`
 SETUG=1
 
 ## ======================== START PROGRAM ====================
@@ -108,7 +118,7 @@ echo -e "\n-- update existing list of packages\n"
 $APT update
 
 echo -e "\n-- install a few prerequisite packages which let apt use packages over HTTPS\n"
-$APT install -y apt-transport-https ca-certificates curl software-properties-common net-tools
+$APT install -y apt-transport-https ca-certificates curl software-properties-common
 
 echo -e "\n-- add the GPG key for the official Docker repository to your system\n"
 $CURL -fsSL https://download.docker.com/linux/ubuntu/gpg | $APTKEY add -
@@ -308,13 +318,12 @@ echo -e " - Upload a default ONIE image to '${TFTPBOOT}${OS_IMAGES}/'"
 echo -e "   and name it '${ONIE_DEFAULT_BOOT}'"
 echo -e "   This will be picked up by a switch if no OS is present.\n"
 echo -e " - Edit ${DHCP_PATH}/${DHCPD_CONF} to add your fabric switches."
-echo -e "   Add mac address and fixed-ip address under the line stating:"
-echo -e "   ### Inserted by Plukkie's ZTD Github project - DON'T EDIT THIS LINE ###"
-echo -e "   The names you use will be automatically configured on the switches"
-echo -e "   as hostnames."
-echo -e "   After changes, restart with 'docker-compose restart ${DHCPCONTAINERNAME}'"
+echo -e "   Add hostame, mac address and fixed-ip address under the line stating:\n"
+echo -e "   ### Inserted by Plukkie's ZTD Github project - DON'T EDIT THIS LINE ###\n"
+echo -e "   The hostnames will be automatically configured on the switches."
+echo -e "   After changes to ${DHCPD_CONF}, restart with 'docker-compose down ${DHCPCONTAINERNAME} && docker-compose up ${DHCPCONTAINERNAME} -d'"
 echo -e " - Usefull container commands"
-echo -e "   Restart all containers: docker-compose restart"
+echo -e "   Restart all containers: docker-compose down && docker-compose up -d"
 echo -e "   Gracefully shut down and remove containers: docker-compose down"
 echo -e "   Spin up containers: docker-compose up -d\n"
 echo "  The last command executed was 'su - ${USER}'. This ensures"

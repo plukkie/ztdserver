@@ -22,6 +22,11 @@
 # greetings from plukkie@gmail.com
 ################################################
 
+if (( $EUID != 0 )); then
+    echo "Please run as root"
+    exit
+fi
+
 APT=`type -tP apt`
 NETSTAT=netstat
 NETTOOLS=net-tools

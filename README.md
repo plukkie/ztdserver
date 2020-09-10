@@ -77,7 +77,8 @@ The default login is untouched. Please change accordingly in the cli_config file
   manually after installation. Edit script /tftpboot/ztd/ztd.sh and set the variable
   ZTD_SERVER_IP=<ip address of server interface>
   Also, the subnet could be misconfigured in the /etc/dhcp/dhcpd.conf.
-  Edit the dhcp file and restart container: docker-compose restart ztd-dhcpd
+  Edit the dhcp file and restart container: 
+  docker-compose down ztd-dhcpd && docker-compose up ztd-dhcpd -d
 - Be sure you do not have already a webserver or dhcp server running on your host
   This will obviously interfear with the default ports of tcp:80, tcp:443 and udp:67. 
   It will break a succesfull installation

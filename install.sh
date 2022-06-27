@@ -286,6 +286,7 @@ cat <<EOT >> ${DOCKERCOMPOSE_YML}
 version: '${COMPOSEV}'
 services:
    ${HTTPCONTAINERNAME}:
+     restart: always
      image: "${HTTPCONTAINERNAME}:v1"
      ports:
        - "80:80"
@@ -294,6 +295,7 @@ services:
        - ${DHCP_PATH}:${DHCP_PATH}
        - ${TFTPBOOT}:${HTTPPATH}${TFTPBOOT}
    ${DHCPCONTAINERNAME}:
+     restart: always
      image: ${DOCKERHUB_DHCP_IMAGE}
      volumes:
        - ${DHCPLIB}:${DHCPLIB}
@@ -301,7 +303,7 @@ services:
      network_mode: "host"
    ${TFTPCONTAINERNAME}:
      restart: always
-     image: "${DOCKERHUB_TFTP_IMAGE} 
+     image: "${DOCKERHUB_TFTP_IMAGE}" 
      ports:
       - 69:1069/udp
      volumes:

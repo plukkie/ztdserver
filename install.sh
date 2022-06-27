@@ -38,15 +38,22 @@ if ! command -v $NETSTAT &> /dev/null
                 $APT update && $APT install -y $NETTOOLS
 fi
 
+SONIC_ZTP_SCRIPTS_REPO="sonic-ztp-gns3-demo-scripts"
+SONIC_ZTP_SCRIPTS_GIT="https://github.com/plukkie/${SONIC_ZTP_SCRIPTS_REPO}.git"
+SONIC_ZTP_SCRIPT=${SONIC_ZTP_SCRIPTS_REPO}/ztp/ztp_gns3_demo.json
+SONIC_SAVE_CONFIG_SCRIPT=${SONIC_ZTP_SCRIPTS_REPO}/postscript_addons/save_config.sh
+SONIC_POSTSCRIPT=${SONIC_ZTP_SCRIPTS_REPO}/postscript/postscript_gns3_demo.sh
 DHCPPOOL=0
 DHCPSTART=151
 DHCPSTOP=170
 DOCKERHUB_HTTP_IMAGE="enonicio/apache2"
 DOCKERHUB_DHCP_IMAGE="rackhd/isc-dhcp-server"
+DOCKERHUB_TFTP_IMAGE="pghalliday/tftp"
 WWWUSER="www-data"
 TFTPBOOT=/tftpboot
 HTTPCONTAINERNAME=ztd-httpd
 DHCPCONTAINERNAME=ztd-dhcpd
+TFTPCONTAINERNAME=ztd-tftp
 HTTPPATH=/var/www/html
 CGISCRIPT=catch_hostnames.sh
 HOSTNAMESFILE=hostnames.dyn
@@ -71,7 +78,7 @@ SYSCTL=`type -tP systemctl`
 USERMOD=`type -tP usermod`
 USER=`logname`
 ETH_INT=`ip addr show | grep -i UP | grep -iv docker | grep -iv loop | grep -iv master | grep -iv br- | cut -d':' -f2` && ETH_INT=${ETH_INT%%[[:space:]] *}
-IP=`ifconfig ${ETH_INT} | grep -i inet.*netmask | awk '/inet/{print $2}'`
+IP=`hostname -I | awk '{print $1}'`
 SUBNETDATA=`$NETSTAT -rn | grep ${ETH_INT} | grep -v G | awk '{print $1, $3}'`
 SUBNET=`echo ${SUBNETDATA} | cut -d' ' -f1`
 NETMASK=`echo ${SUBNETDATA} | cut -d' ' -f2`
@@ -159,6 +166,17 @@ echo -e "    ${TFTPBOOT}${CLI_CONFIG_PATH}"
 echo -e "    ${TFTPBOOT}${POST_SCRIPT_PATH}\n"
 [ ! -d "${TFTPBOOT}${POST_SCRIPT_PATH}" ] && mkdir ${TFTPBOOT}${POST_SCRIPT_PATH}
 touch ${TFTPBOOT}${OS_IMAGES}/${DUMMY_OS_BIN}
+
+## Get SONiC ZTP SCRIPT REPO
+echo "Get SONiC ZTP scripts from github..."
+git clone ${SONIC_ZTP_SCRIPTS_GIT}
+
+# Add current machine IP address as server IP in all scripts
+sed -i "s/http:\/\/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\//http:\/\/${IP}\//g" ${SONIC_ZTP_SCRIPT}
+sed -i "s/ZTD_SERVER_IP=.*/ZTD_SERVER_IP=\"${IP}\"/g" ${SONIC_POSTSCRIPT}
+sed -i "s/TFTPSERVER=.*/TFTPSERVER=\"${IP}\"/g" ${SONIC_SAVE_CONFIG_SCRIPT}
+mv ${SONIC_ZTP_SCRIPTS_REPO} ${TFTPBOOT}/sonic
+
 ## Setting up dhcpd.conf file with some mandatory items
 [ ! -d "${DHCP_PATH}" ] && mkdir ${DHCP_PATH}
 
@@ -281,6 +299,15 @@ services:
        - ${DHCPLIB}:${DHCPLIB}
        - ${DHCP_PATH}:${DHCP_PATH}
      network_mode: "host"
+   ${TFTPCONTAINERNAME}:
+     restart: always
+     image: "${DOCKERHUB_TFTP_IMAGE} 
+     ports:
+      - 69:1069/udp
+     volumes:
+       -  ${TFTPBOOT}:/var${TFTPBOOT}
+     network_mode: "host"
+     command: [ "-L", "--secure", "--create", "/var${TFTPBOOT}" ]
 EOT
 echo "   Done."
 echo "   This docker yaml file is used by docker-compose to start/stop your containers."
@@ -316,6 +343,9 @@ fi
 echo -e "\n-- Starting container ${DHCPCONTAINERNAME}..."
 ${DOCKERCOMPOSE} up -d ${DHCPCONTAINERNAME}
 
+## Starting TFTP container
+echo -e "\n-- Starting container ${TFTPCONTAINERNAME}..."
+${DOCKERCOMPOSE} up -d ${TFTPCONTAINERNAME}
 
 echo -e "\n####################  All Done  ####################"
 echo -e " Some actions to do:"

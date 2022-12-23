@@ -308,7 +308,7 @@ services:
       - 69:1069/udp
      volumes:
        -  ${TFTPBOOT}:/var${TFTPBOOT}
-     network_mode: "host"
+     #network_mode: "host"
      command: [ "-L", "--secure", "--create", "/var${TFTPBOOT}" ]
 EOT
 echo "   Done."

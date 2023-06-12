@@ -1,8 +1,8 @@
 #!/bin/bash
 
-DHCPD_CONF=
-TFTPBOOT=
-HOSTNAMES=
+DHCPD_CONF=/etc/dhcp/dhcpd.conf
+TFTPBOOT=/var/www/html/tftpboot
+HOSTNAMES=hostnames.dyn
 SED=`type -p sed`
 GREP=`type -tP grep`
 

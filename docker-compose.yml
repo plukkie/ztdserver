@@ -1,0 +1,27 @@
+version: '3'
+services:
+   ztd-httpd:
+     restart: always
+     image: "ztd-httpd:v1"
+     ports:
+       - "80:80"
+       - "443:443"
+     volumes:
+       - /etc/dhcp:/etc/dhcp
+       - /tftpboot:/var/www/html/tftpboot
+   ztd-dhcpd:
+     restart: always
+     image: rackhd/isc-dhcp-server
+     volumes:
+       - /var/lib/dhcp:/var/lib/dhcp
+       - /etc/dhcp:/etc/dhcp
+     network_mode: "host"
+   ztd-tftp:
+     restart: always
+     image: "pghalliday/tftp" 
+     ports:
+      - 69:1069/udp
+     volumes:
+       -  /tftpboot:/var/tftpboot
+     network_mode: "host"
+     command: [ "-L", "--secure", "--create", "/var/tftpboot" ]

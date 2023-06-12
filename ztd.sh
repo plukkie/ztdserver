@@ -1,15 +1,15 @@
 #!/bin/bash
 
-ZTD_SERVER_IP=
-CGI_HOSTNAME_SCRIPT=
-ZTD_PATH=
-HOSTNAMES=
-IMAGE_PATH=
-OS_IMAGE=
-POSTSCRIPT_PATH=
-POSTSCRIPT_FILE=
-CLI_CONF_FILE=
-CLI_CONF_PATH=
+ZTD_SERVER_IP="192.168.30.129"
+CGI_HOSTNAME_SCRIPT=/cgi-bin/catch_hostnames.sh
+ZTD_PATH=/tftpboot
+HOSTNAMES=hostnames.dyn
+IMAGE_PATH=/osimages
+OS_IMAGE=onie-installer-x86_64
+POSTSCRIPT_PATH=/post_script
+POSTSCRIPT_FILE=post_script.sh
+CLI_CONF_FILE=cli_config
+CLI_CONF_PATH=/cli_config
 TMP=/tmp/
 HOME=/home
 ZTD_LOGFILE=ztd.log

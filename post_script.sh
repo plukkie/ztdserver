@@ -3,7 +3,7 @@
 ## Set SFDMODE to 1 converts switch to SFD managed, set to 0 puts in normal mode
 SFDMODE=0
 USER_NAME=admin
-HOSTNAMES=
+HOSTNAMES=hostnames.dyn
 TMP=/tmp
 HOME=/home
 PASSWORD=admin

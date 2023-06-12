@@ -56,6 +56,7 @@ DHCPCONTAINERNAME=ztd-dhcpd
 TFTPCONTAINERNAME=ztd-tftp
 HTTPPATH=/var/www/html
 CGISCRIPT=catch_hostnames.sh
+CGISCRIPT_SEC=callback.sh
 HOSTNAMESFILE=hostnames.dyn
 DHCP_PATH=/etc/dhcp
 DHCPD_CONF=dhcpd.conf
@@ -268,6 +269,7 @@ chmod a+x ${CGISCRIPT}
 chown root.root ${CGISCRIPT}
 echo -e "   Copy script ${CGISCRIPT} to container ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}..."
 ${DOCKER} cp ${CGISCRIPT} ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT}
+${DOCKER} cp ${CGISCRIPT_SEC} ${HTTPCONTAINERNAME}:${APACHECGIPATH}/${CGISCRIPT_SEC}
 ${DOCKER} exec ${HTTPCONTAINERNAME} rm -f ${APACHE2_PID}
 echo -e "   Commit changes in container and save new image..."
 ${DOCKER} commit -m "ztd initial install" ${HTTPCONTAINERID} ${HTTPCONTAINERNAME}:v1

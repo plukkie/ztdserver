@@ -19,8 +19,8 @@ services:
    ztd-tftp:
      restart: always
      image: "pghalliday/tftp" 
-     ports:
-      - 69:1069/udp
+     #ports:
+     # - 69:1069/udp
      volumes:
        -  /tftpboot:/var/tftpboot
      network_mode: "host"
